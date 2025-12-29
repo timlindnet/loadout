@@ -1,14 +1,12 @@
-log "Installing RuneScape launcher (apt repo)..."
+log "Installing Jagex Launcher repo + launcher..."
 
-# Publisher instructions use apt-key; follow them as requested.
-fetch_url "https://content.runescape.com/downloads/ubuntu/runescape.gpg.key" | sudo_run apt-key add -
-
-sudo_run mkdir -p /etc/apt/sources.list.d
-printf 'deb https://content.runescape.com/downloads/ubuntu trusty non-free\n' | sudo_run tee /etc/apt/sources.list.d/runescape.list >/dev/null
+# Avoid any interactive apt/debconf prompts.
+export DEBIAN_FRONTEND=noninteractive
 
 apt_recover_dpkg
-sudo_run apt-get update -y
-sudo_run apt-get install -y runescape-launcher
 
-log "Done (RuneScape launcher)."
+# Install using the upstream helper script.
+fetch_url "https://raw.githubusercontent.com/nmlynch94/com.jagexlauncher.JagexLauncher/main/install-jagex-launcher-repo.sh" | bash
+
+log "Done (Jagex Launcher)."
 
