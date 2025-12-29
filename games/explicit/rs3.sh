@@ -1,14 +1,33 @@
-log "Installing RuneScape launcher (apt repo)..."
+log "Installing RuneScape launcher (snap)..."
 
-# Publisher instructions use apt-key; follow them as requested.
-fetch_url "https://content.runescape.com/downloads/ubuntu/runescape.gpg.key" | sudo_run apt-key add -
+# Avoid any interactive apt/debconf prompts.
+export DEBIAN_FRONTEND=noninteractive
 
-sudo_run mkdir -p /etc/apt/sources.list.d
-printf 'deb https://content.runescape.com/downloads/ubuntu trusty non-free\n' | sudo_run tee /etc/apt/sources.list.d/runescape.list >/dev/null
-
+# `runescape-launcher` from the legacy Jagex apt repo depends on libssl1.1, which
+# isn't available on Ubuntu 24+ (noble). Prefer snap for a stable install path.
 apt_recover_dpkg
-sudo_run apt-get update -y
-sudo_run apt-get install -y runescape-launcher
 
-log "Done (RuneScape launcher)."
+if [[ -f /etc/apt/sources.list.d/runescape.list ]]; then
+  log "Removing legacy Jagex apt repo (/etc/apt/sources.list.d/runescape.list)..."
+  sudo_run rm -f /etc/apt/sources.list.d/runescape.list
+fi
+
+if ! have_cmd snap; then
+  sudo_run apt-get update -y
+  sudo_run apt-get install -y snapd
+
+  # On a normal Ubuntu desktop this should succeed. If systemd isn't available
+  # (e.g. certain containers/WSL), snap installs may not work.
+  if have_cmd systemctl; then
+    sudo_run systemctl enable --now snapd.socket >/dev/null 2>&1 || true
+    sudo_run systemctl enable --now snapd.service >/dev/null 2>&1 || true
+  fi
+fi
+
+# Snap name varies by publisher/channel; try the common one first.
+if ! sudo_run snap install runescape; then
+  sudo_run snap install runescape-launcher
+fi
+
+log "Done (RuneScape launcher via snap)."
 
