@@ -25,14 +25,11 @@ fi
 gpu_line="$(lspci -nn | grep -Ei 'vga|3d|display' | head -n1 || true)"
 log "GPU detected: ${gpu_line:-unknown}"
 
-# Ubuntu 24.04+ (supported): use the Ubuntu-supported stable kernel meta.
-kernel_meta="linux-generic"
-log "Ensuring kernel meta package: ${kernel_meta}"
-sudo_run apt-get update -y
-sudo_run apt-get install -y "$kernel_meta" linux-firmware
-
 if echo "$gpu_line" | grep -qi 'nvidia'; then
-  log "NVIDIA GPU detected: installing Ubuntu-recommended NVIDIA driver (stable, tested for this Ubuntu release)"
+  # KISS: this script exists only to handle NVIDIA's driver stack.
+  # Ubuntu's default kernel/kernel meta packages are already handled by the installer/normal upgrades.
+  log "NVIDIA GPU detected: installing Ubuntu-recommended NVIDIA driver (stable for this Ubuntu release)"
+  sudo_run apt-get update -y
   sudo_run apt-get install -y ubuntu-drivers-common
 
   # ubuntu-drivers picks the recommended, supported driver for this hardware/Ubuntu combo.
@@ -40,13 +37,6 @@ if echo "$gpu_line" | grep -qi 'nvidia'; then
 
   log "NVIDIA driver install requested. A reboot is typically required."
 else
-  # AMD/Intel: no proprietary driver step. Kernel meta above is the main lever.
-  if echo "$gpu_line" | grep -Eqi 'amd|advanced micro devices|ati'; then
-    log "AMD GPU detected: using Ubuntu kernel + firmware (Mesa handled by gaming/mesa.sh)."
-  elif echo "$gpu_line" | grep -qi 'intel'; then
-    log "Intel GPU detected: using Ubuntu kernel + firmware (Mesa handled by gaming/mesa.sh)."
-  else
-    log "Unknown GPU vendor: installed kernel meta + firmware only."
-  fi
+  log "Non-NVIDIA GPU detected: nothing to do in kernel.sh."
 fi
 
