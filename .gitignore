@@ -1,0 +1,6 @@
+## Main repo should NOT track personal snapshots
+/state/
+
+## Common noise
+*.log
+.DS_Store
