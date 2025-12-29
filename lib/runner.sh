@@ -31,6 +31,7 @@ run_install() {
     log "Running tag folder: $tag/"
     run_folder "$root_dir/$tag" "$tag" || die "Failed in tag: $tag/"
 
+    run_selected_for_tag "$root_dir" "$tag"
     run_optional_for_tag "$root_dir" "$tag"
   done
 }
@@ -85,20 +86,40 @@ run_optional_for_tag() {
     return 0
   fi
 
-  local spec="${OPTIONAL_ONLY[$tag]:-}"
+  return 0
+}
+
+run_selected_for_tag() {
+  local root_dir="$1"
+  local tag="$2"
+  local spec="${SELECT_ONLY[$tag]:-}"
   [[ -n "$spec" ]] || return 0
 
-  log "Running selected optional scripts for tag: $tag/ ($spec)"
+  log "Running selected scripts for tag: $tag/ ($spec)"
+
   local s
   for s in $spec; do
-    local file="$opt_dir/$s"
-    if [[ "$file" != *.sh ]]; then
-      file="$file.sh"
+    local base="$s"
+    if [[ "$base" == *.sh ]]; then
+      base="${base%.sh}"
     fi
-    if [[ ! -f "$file" ]]; then
-      die "Optional script not found: $file"
+
+    local explicit="$root_dir/$tag/explicit/$base.sh"
+    local optional="$root_dir/$tag/optional/$base.sh"
+
+    local file=""
+    local label=""
+    if [[ -f "$explicit" ]]; then
+      file="$explicit"
+      label="$tag/explicit"
+    elif [[ -f "$optional" ]]; then
+      file="$optional"
+      label="$tag/optional"
+    else
+      die "Selected script not found for tag '$tag': expected $explicit or $optional"
     fi
-    log "Running: $tag/optional/$(basename "$file")"
+
+    log "Running: $label/$(basename "$file")"
     OS_UBUNTU_TAG="$tag" OS_UBUNTU_ROOT="$root_dir" bash "$root_dir/lib/run-script.sh" "$file"
   done
 }

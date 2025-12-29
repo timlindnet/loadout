@@ -12,7 +12,9 @@ APPLY_SNAPSHOT_REF=""
 INSTALL_ALL="false"
 OPTIONAL_GLOBAL="false"          # -o / --optional
 OPTIONAL_TAGS=()                 # --<tag>-optional
-declare -A OPTIONAL_ONLY=()      # --<tag>--<script> => OPTIONAL_ONLY[tag]="a b c"
+# One-off script selector: --<tag>--<script>
+# Runner will install <tag>/explicit/<script>.sh if present, otherwise <tag>/optional/<script>.sh.
+declare -A SELECT_ONLY=()
 
 print_help() {
   cat <<'EOF'
@@ -23,6 +25,7 @@ Usage:
   ./install.sh --all
   ./install.sh --gaming -o
   ./install.sh --base--spotify
+  ./install.sh --games--rs3
 
 Modes:
   --help                  Show help
@@ -39,9 +42,13 @@ Notes:
   - Tag folders run only when selected: base/, dev/, gaming/, ...
   - Optional scripts live under <tag>/optional/
     - Install all optional scripts for a tag: --<tag>-optional
-    - Install one optional script: --<tag>--<script> (maps to <tag>/optional/<script>.sh)
+    - Install one optional/explicit script: --<tag>--<script>
+      - prefers <tag>/explicit/<script>.sh if present
+      - else runs <tag>/optional/<script>.sh
     - Install optional scripts for supplied tags: -o / --optional
     - Install all tags incl. optional scripts: --all
+  - Explicit scripts live under <tag>/explicit/
+    - They are only installed via --<tag>--<script> (never via -o/--optional)
   - For curl/wget piping: bash -s -- <args>
 EOF
 }
@@ -55,7 +62,7 @@ parse_args() {
   INSTALL_ALL="false"
   OPTIONAL_GLOBAL="false"
   OPTIONAL_TAGS=()
-  OPTIONAL_ONLY=()
+  SELECT_ONLY=()
 
   local argv=("$@")
   local i=0
@@ -119,7 +126,7 @@ parse_args() {
           [[ -n "$tag" ]] || die "Invalid selector: $a"
           [[ -n "$script" ]] || die "Invalid selector (missing script): $a"
           add_unique TAGS "$tag"
-          OPTIONAL_ONLY["$tag"]="$(append_word "${OPTIONAL_ONLY[$tag]:-}" "$script")"
+          SELECT_ONLY["$tag"]="$(append_word "${SELECT_ONLY[$tag]:-}" "$script")"
         elif [[ "$spec" == *"-optional" ]]; then
           local tag="${spec%-optional}"
           [[ -n "$tag" ]] || die "Invalid selector: $a"

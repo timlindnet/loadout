@@ -45,6 +45,12 @@ Optional scripts live under `<tag>/optional/`.
 ./install.sh --dev--cursor
 ```
 
+- Explicit scripts live under `<tag>/explicit/` and are installed only when you name them:
+
+```bash
+./install.sh --games--rs3
+```
+
 - Install everything (all tags + all optional scripts):
 
 ```bash
