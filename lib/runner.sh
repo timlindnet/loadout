@@ -3,8 +3,6 @@ set -euo pipefail
 
 run_install() {
   local root_dir="$1"
-  shift || true
-  local tags=("$@")
 
   ensure_ubuntu
 
@@ -17,18 +15,22 @@ run_install() {
   log "Running always-on scripts: pre/"
   run_folder "$root_dir/pre" "pre" || die "Failed in pre/"
 
-  if [[ ${#tags[@]} -eq 0 ]]; then
-    log "No tags specified; nothing else to run."
-    return 0
+  local tags=()
+  if [[ "${INSTALL_ALL:-false}" == "true" ]]; then
+    mapfile -t tags < <(list_tags "$root_dir")
+  else
+    tags=("${TAGS[@]:-}")
   fi
 
   local tag
-  for tag in "${tags[@]}"; do
+  for tag in "${tags[@]:-}"; do
     if [[ ! -d "$root_dir/$tag" ]]; then
       die "Unknown tag folder: $tag (missing directory: $root_dir/$tag)"
     fi
     log "Running tag folder: $tag/"
     run_folder "$root_dir/$tag" "$tag" || die "Failed in tag: $tag/"
+
+    run_optional_for_tag "$root_dir" "$tag"
   done
 }
 
@@ -53,6 +55,50 @@ run_folder() {
   for f in "${files[@]}"; do
     log "Running: $tag/$(basename "$f")"
     OS_UBUNTU_TAG="$tag" bash "$f"
+  done
+}
+
+run_optional_for_tag() {
+  local root_dir="$1"
+  local tag="$2"
+  local opt_dir="$root_dir/$tag/optional"
+
+  [[ -d "$opt_dir" ]] || return 0
+
+  local run_all="false"
+  if [[ "${OPTIONAL_GLOBAL:-false}" == "true" ]]; then
+    run_all="true"
+  fi
+
+  local t
+  for t in "${OPTIONAL_TAGS[@]:-}"; do
+    if [[ "$t" == "$tag" ]]; then
+      run_all="true"
+      break
+    fi
+  done
+
+  if [[ "$run_all" == "true" ]]; then
+    log "Running optional scripts for tag: $tag/"
+    run_folder "$opt_dir" "$tag/optional" || die "Failed in optional scripts for tag: $tag/"
+    return 0
+  fi
+
+  local spec="${OPTIONAL_ONLY[$tag]:-}"
+  [[ -n "$spec" ]] || return 0
+
+  log "Running selected optional scripts for tag: $tag/ ($spec)"
+  local s
+  for s in $spec; do
+    local file="$opt_dir/$s"
+    if [[ "$file" != *.sh ]]; then
+      file="$file.sh"
+    fi
+    if [[ ! -f "$file" ]]; then
+      die "Optional script not found: $file"
+    fi
+    log "Running: $tag/optional/$(basename "$file")"
+    OS_UBUNTU_TAG="$tag" bash "$file"
   done
 }
 

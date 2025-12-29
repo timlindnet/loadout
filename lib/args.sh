@@ -8,12 +8,21 @@ SNAPSHOT_NAME=""
 SNAPSHOT_TAGS=()
 APPLY_SNAPSHOT_REF=""
 
+# Install selection
+INSTALL_ALL="false"
+OPTIONAL_GLOBAL="false"          # -o / --optional
+OPTIONAL_TAGS=()                 # --<tag>-optional
+declare -A OPTIONAL_ONLY=()      # --<tag>--<script> => OPTIONAL_ONLY[tag]="a b c"
+
 print_help() {
   cat <<'EOF'
 os-ubuntu: folder-driven Ubuntu setup (bash)
 
 Usage:
   ./install.sh [--base] [--dev] [--gaming] ...
+  ./install.sh --all
+  ./install.sh --gaming -o
+  ./install.sh --base--spotify
 
 Modes:
   --help                  Show help
@@ -28,6 +37,11 @@ Snapshots (stored as commits in ./state):
 Notes:
   - Always-run folders: req/, pre/
   - Tag folders run only when selected: base/, dev/, gaming/, ...
+  - Optional scripts live under <tag>/optional/
+    - Install all optional scripts for a tag: --<tag>-optional
+    - Install one optional script: --<tag>--<script> (maps to <tag>/optional/<script>.sh)
+    - Install optional scripts for supplied tags: -o / --optional
+    - Install all tags incl. optional scripts: --all
   - For curl/wget piping: bash -s -- <args>
 EOF
 }
@@ -38,6 +52,10 @@ parse_args() {
   SNAPSHOT_NAME=""
   SNAPSHOT_TAGS=()
   APPLY_SNAPSHOT_REF=""
+  INSTALL_ALL="false"
+  OPTIONAL_GLOBAL="false"
+  OPTIONAL_TAGS=()
+  OPTIONAL_ONLY=()
 
   local argv=("$@")
   local i=0
@@ -51,6 +69,15 @@ parse_args() {
       --list-tags)
         MODE="list_tags"
         return 0
+        ;;
+      --all)
+        MODE="install"
+        INSTALL_ALL="true"
+        OPTIONAL_GLOBAL="true"
+        ;;
+      -o|--optional)
+        MODE="install"
+        OPTIONAL_GLOBAL="true"
         ;;
       --snapshot)
         MODE="snapshot"
@@ -81,8 +108,26 @@ parse_args() {
         i=$((i+1))
         ;;
       --*)
-        # Treat unknown --foo as a tag name "foo"
-        TAGS+=("${a#--}")
+        # Install-time selectors:
+        # - --<tag>
+        # - --<tag>-optional
+        # - --<tag>--<script>
+        local spec="${a#--}"
+        if [[ "$spec" == *"--"* ]]; then
+          local tag="${spec%%--*}"
+          local script="${spec#*--}"
+          [[ -n "$tag" ]] || die "Invalid selector: $a"
+          [[ -n "$script" ]] || die "Invalid selector (missing script): $a"
+          add_unique TAGS "$tag"
+          OPTIONAL_ONLY["$tag"]="$(append_word "${OPTIONAL_ONLY[$tag]:-}" "$script")"
+        elif [[ "$spec" == *"-optional" ]]; then
+          local tag="${spec%-optional}"
+          [[ -n "$tag" ]] || die "Invalid selector: $a"
+          add_unique TAGS "$tag"
+          add_unique OPTIONAL_TAGS "$tag"
+        else
+          add_unique TAGS "$spec"
+        fi
         ;;
       *)
         die "Unknown argument: $a"
@@ -93,9 +138,36 @@ parse_args() {
 
   # Default tags (when installing) unless user explicitly provided tags.
   # Keep default minimal: base only.
-  if [[ "$MODE" == "install" && ${#TAGS[@]} -eq 0 ]]; then
+  if [[ "$MODE" == "install" && "$INSTALL_ALL" != "true" && ${#TAGS[@]} -eq 0 ]]; then
     TAGS=("base")
   fi
+}
+
+append_word() {
+  local existing="$1"
+  local w="$2"
+  if [[ -z "$existing" ]]; then
+    printf "%s" "$w"
+  else
+    printf "%s %s" "$existing" "$w"
+  fi
+}
+
+add_unique() {
+  # add_unique ARRAY_NAME VALUE
+  local arr_name="$1"
+  local value="$2"
+  [[ -n "$value" ]] || return 0
+
+  # shellcheck disable=SC2178
+  local -n arr="$arr_name"
+  local x
+  for x in "${arr[@]:-}"; do
+    if [[ "$x" == "$value" ]]; then
+      return 0
+    fi
+  done
+  arr+=("$value")
 }
 
 list_tags() {

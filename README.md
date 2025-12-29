@@ -21,6 +21,35 @@ Only one of `curl` or `wget` is required; the bootstrap step installs just one i
 ./install.sh --base --dev --gaming
 ```
 
+## Optional scripts
+
+Optional scripts live under `<tag>/optional/`.
+
+- Install optional scripts for the tags you selected:
+
+```bash
+./install.sh --base --gaming -o
+```
+
+- Install all optional scripts for a specific tag:
+
+```bash
+./install.sh --base-optional
+./install.sh --gaming-optional
+```
+
+- Install only one optional script for a tag (maps to `<tag>/optional/<script>.sh`):
+
+```bash
+./install.sh --base--spotify
+```
+
+- Install everything (all tags + all optional scripts):
+
+```bash
+./install.sh --all
+```
+
 ## Snapshots (commits in `state/`)
 
 - Create a snapshot commit (default name is UTC timestamp):
@@ -59,7 +88,7 @@ Only one of `curl` or `wget` is required; the bootstrap step installs just one i
 ## Folder execution model
 
 - Always runs:
-  - `req/` (bootstrap tools like `git`, `curl`, `wget`)
+  - `req/` (bootstrap tools like a downloader + certs)
   - `pre/` (e.g. `apt update`, `apt upgrade`)
 - Runs tag folders only when selected:
   - `base/`, `dev/`, `gaming/`, etc.

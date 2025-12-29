@@ -43,7 +43,7 @@ main() {
       return 0
       ;;
     install)
-      run_install "$ROOT_DIR" "${TAGS[@]:-}"
+      run_install "$ROOT_DIR"
       return 0
       ;;
     *)
