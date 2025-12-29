@@ -90,6 +90,11 @@ parse_args() {
     esac
     i=$((i+1))
   done
+
+  # Default tags (when installing) unless user explicitly provided tags.
+  if [[ "$MODE" == "install" && ${#TAGS[@]} -eq 0 ]]; then
+    TAGS=("base" "dev" "gaming")
+  fi
 }
 
 list_tags() {
