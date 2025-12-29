@@ -18,10 +18,35 @@ if [[ "$added_i386_arch" == "yes" ]]; then
 fi
 
 # Avoid Steam's interactive debconf prompt about missing 32-bit Nvidia driver libs.
+# NOTE: On Ubuntu 24+, `nvidia-driver-libs:i386` is often not published; the 32-bit
+# libs are provided by versioned packages like `libnvidia-gl-<version>:i386`.
 if [[ -e /proc/driver/nvidia/version ]] || have_cmd nvidia-smi; then
-  if ! dpkg -s nvidia-driver-libs:i386 >/dev/null 2>&1; then
-    log "Nvidia driver detected; installing 32-bit Nvidia libs for Steam..."
-    sudo_run apt-get install -y nvidia-driver-libs:i386
+  log "Nvidia driver detected; ensuring 32-bit Nvidia libs for Steam..."
+
+  pkg_available() {
+    apt-cache show "$1" >/dev/null 2>&1
+  }
+
+  # Legacy (some Ubuntu releases): metapackage exists for i386.
+  if pkg_available "nvidia-driver-libs:i386"; then
+    if ! dpkg -s nvidia-driver-libs:i386 >/dev/null 2>&1; then
+      sudo_run apt-get install -y nvidia-driver-libs:i386
+    fi
+  else
+    # Preferred (Ubuntu 24+): install matching versioned 32-bit GL libs if we can
+    # detect the installed amd64 package name.
+    gl_pkg="$(dpkg-query -W -f='${Package}\n' 'libnvidia-gl-[0-9]*' 2>/dev/null | sort -V | awk 'END{print}')"
+    if [[ -n "${gl_pkg:-}" ]]; then
+      if pkg_available "${gl_pkg}:i386"; then
+        if ! dpkg -s "${gl_pkg}:i386" >/dev/null 2>&1; then
+          sudo_run apt-get install -y "${gl_pkg}:i386"
+        fi
+      else
+        warn "Nvidia detected but ${gl_pkg}:i386 is not available via apt; skipping 32-bit Nvidia libs."
+      fi
+    else
+      warn "Nvidia detected but no apt-managed libnvidia-gl-<version> package found; skipping 32-bit Nvidia libs."
+    fi
   fi
 fi
 
