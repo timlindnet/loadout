@@ -12,6 +12,8 @@ curl -fsSL https://raw.githubusercontent.com/<you>/<repo>/main/install.sh | bash
 wget -qO- https://raw.githubusercontent.com/<you>/<repo>/main/install.sh | bash -s -- --gaming
 ```
 
+Only one of `curl` or `wget` is required; the bootstrap step installs just one if needed.
+
 ## Local usage
 
 ```bash

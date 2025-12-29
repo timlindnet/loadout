@@ -7,10 +7,6 @@ source "$ROOT/lib/common.sh"
 
 ensure_ubuntu
 
-if ! have_cmd curl; then
-  die "curl is required (run req/ scripts first)"
-fi
-
 target_user="${SUDO_USER:-$USER}"
 target_home="$(getent passwd "$target_user" | cut -d: -f6)"
 if [[ -z "$target_home" ]]; then
@@ -25,7 +21,14 @@ set -euo pipefail
 export NVM_DIR="$HOME/.nvm"
 mkdir -p "$NVM_DIR"
 if [[ ! -s "$NVM_DIR/nvm.sh" ]]; then
-  curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+  elif command -v wget >/dev/null 2>&1; then
+    wget -qO- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+  else
+    echo "Need curl or wget to install nvm" >&2
+    exit 1
+  fi
 fi
 # shellcheck disable=SC1091
 source "$NVM_DIR/nvm.sh"
