@@ -27,7 +27,6 @@ trap 'rm -f "$tmp"' RETURN
 fetch_url "$url" >"$tmp"
 
 # Prefer apt installing local deb (pulls dependencies). Fallback to dpkg if needed.
-sudo_run apt-get update -y
 if sudo_run apt-get install -y "$tmp"; then
   :
 else
