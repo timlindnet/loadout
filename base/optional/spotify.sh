@@ -7,26 +7,11 @@ source "$ROOT/lib/common.sh"
 
 ensure_ubuntu
 
-log "Installing Spotify (apt repo)..."
+log "Installing Spotify (snap)..."
 
 sudo_run apt-get update -y
-sudo_run apt-get install -y gpg ca-certificates
-
-keyring="/etc/apt/keyrings/spotify.gpg"
-list="/etc/apt/sources.list.d/spotify.list"
-
-sudo_run mkdir -p /etc/apt/keyrings
-
-tmp="$(mktemp)"
-trap 'rm -f "$tmp"' RETURN
-
-fetch_url "https://download.spotify.com/debian/pubkey_6224F9941A8AA6D1.gpg" >"$tmp"
-sudo_run gpg --dearmor -o "$keyring" "$tmp"
-
-printf "deb [signed-by=%s] http://repository.spotify.com stable non-free\n" "$keyring" | sudo_run tee "$list" >/dev/null
-
-sudo_run apt-get update -y
-sudo_run apt-get install -y spotify-client
+sudo_run apt-get install -y snapd
+sudo_run snap install spotify
 
 log "Done (Spotify)."
 
