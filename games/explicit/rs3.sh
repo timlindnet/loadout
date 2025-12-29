@@ -1,33 +1,19 @@
-log "Installing RuneScape launcher (snap)..."
+log "Installing Jagex Launcher repo + launcher..."
 
 # Avoid any interactive apt/debconf prompts.
 export DEBIAN_FRONTEND=noninteractive
 
-# `runescape-launcher` from the legacy Jagex apt repo depends on libssl1.1, which
-# isn't available on Ubuntu 24+ (noble). Prefer snap for a stable install path.
 apt_recover_dpkg
 
+# If a previous version of this repo added the legacy Jagex "trusty" apt repo,
+# remove it to avoid future apt errors (and the libssl1.1 dependency issue).
 if [[ -f /etc/apt/sources.list.d/runescape.list ]]; then
   log "Removing legacy Jagex apt repo (/etc/apt/sources.list.d/runescape.list)..."
   sudo_run rm -f /etc/apt/sources.list.d/runescape.list
 fi
 
-if ! have_cmd snap; then
-  sudo_run apt-get update -y
-  sudo_run apt-get install -y snapd
+# Install using the upstream helper script.
+fetch_url "https://raw.githubusercontent.com/nmlynch94/com.jagexlauncher.JagexLauncher/main/install-jagex-launcher-repo.sh" | bash
 
-  # On a normal Ubuntu desktop this should succeed. If systemd isn't available
-  # (e.g. certain containers/WSL), snap installs may not work.
-  if have_cmd systemctl; then
-    sudo_run systemctl enable --now snapd.socket >/dev/null 2>&1 || true
-    sudo_run systemctl enable --now snapd.service >/dev/null 2>&1 || true
-  fi
-fi
-
-# Snap name varies by publisher/channel; try the common one first.
-if ! sudo_run snap install runescape; then
-  sudo_run snap install runescape-launcher
-fi
-
-log "Done (RuneScape launcher via snap)."
+log "Done (Jagex Launcher)."
 
