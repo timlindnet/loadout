@@ -23,12 +23,16 @@ fi
 if [[ -e /proc/driver/nvidia/version ]] || have_cmd nvidia-smi; then
   log "Nvidia driver detected; ensuring 32-bit Nvidia libs for Steam..."
 
-  pkg_available() {
-    apt-cache show "$1" >/dev/null 2>&1
+  pkg_installable() {
+    # True iff apt has an install candidate (not "Candidate: (none)").
+    local pkg="$1"
+    local cand=""
+    cand="$(apt-cache policy "$pkg" 2>/dev/null | awk '/Candidate:/{print $2; exit}')"
+    [[ -n "$cand" && "$cand" != "(none)" ]]
   }
 
   # Legacy (some Ubuntu releases): metapackage exists for i386.
-  if pkg_available "nvidia-driver-libs:i386"; then
+  if pkg_installable "nvidia-driver-libs:i386"; then
     if ! dpkg -s nvidia-driver-libs:i386 >/dev/null 2>&1; then
       sudo_run apt-get install -y nvidia-driver-libs:i386
     fi
@@ -37,7 +41,7 @@ if [[ -e /proc/driver/nvidia/version ]] || have_cmd nvidia-smi; then
     # detect the installed amd64 package name.
     gl_pkg="$(dpkg-query -W -f='${Package}\n' 'libnvidia-gl-[0-9]*' 2>/dev/null | sort -V | awk 'END{print}')"
     if [[ -n "${gl_pkg:-}" ]]; then
-      if pkg_available "${gl_pkg}:i386"; then
+      if pkg_installable "${gl_pkg}:i386"; then
         if ! dpkg -s "${gl_pkg}:i386" >/dev/null 2>&1; then
           sudo_run apt-get install -y "${gl_pkg}:i386"
         fi
