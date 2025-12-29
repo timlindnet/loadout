@@ -95,3 +95,7 @@ Optional scripts live under `<tag>/optional/`.
 
 Scripts within a folder run in lexicographic order (use prefixes like `10-...sh`).
 
+### Script boilerplate
+
+To keep scripts small, files under `req/`, `pre/`, and tag folders are treated as **snippets** and are executed via `lib/run-script.sh`, which applies `set -euo pipefail`, sources `lib/common.sh`, and runs `ensure_ubuntu` for each script.
+

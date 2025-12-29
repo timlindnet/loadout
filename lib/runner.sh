@@ -54,7 +54,7 @@ run_folder() {
   local f
   for f in "${files[@]}"; do
     log "Running: $tag/$(basename "$f")"
-    OS_UBUNTU_TAG="$tag" bash "$f"
+    OS_UBUNTU_TAG="$tag" OS_UBUNTU_ROOT="$root_dir" bash "$root_dir/lib/run-script.sh" "$f"
   done
 }
 
@@ -98,7 +98,7 @@ run_optional_for_tag() {
       die "Optional script not found: $file"
     fi
     log "Running: $tag/optional/$(basename "$file")"
-    OS_UBUNTU_TAG="$tag" bash "$file"
+    OS_UBUNTU_TAG="$tag" OS_UBUNTU_ROOT="$root_dir" bash "$root_dir/lib/run-script.sh" "$file"
   done
 }
 

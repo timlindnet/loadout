@@ -1,12 +1,3 @@
-#!/usr/bin/env bash
-set -euo pipefail
-
-ROOT="${OS_UBUNTU_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
-# shellcheck source=lib/common.sh
-source "$ROOT/lib/common.sh"
-
-ensure_ubuntu
-
 target_user="${SUDO_USER:-$USER}"
 target_home="$(getent passwd "$target_user" | cut -d: -f6)"
 if [[ -z "$target_home" ]]; then

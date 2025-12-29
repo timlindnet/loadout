@@ -1,12 +1,3 @@
-#!/usr/bin/env bash
-set -euo pipefail
-
-ROOT="${OS_UBUNTU_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
-# shellcheck source=lib/common.sh
-source "$ROOT/lib/common.sh"
-
-ensure_ubuntu
-
 need=()
 
 # We only require ONE fetcher. Prefer what is already installed.
