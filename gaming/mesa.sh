@@ -7,6 +7,14 @@ source "$ROOT/lib/common.sh"
 
 ensure_ubuntu
 
+if [[ -f /etc/os-release ]]; then
+  # shellcheck disable=SC1091
+  . /etc/os-release
+  if [[ "${VERSION_ID:-0}" < "24.04" ]]; then
+    die "gaming/mesa.sh supports Ubuntu 24.04+ only (detected VERSION_ID=${VERSION_ID:-unknown})."
+  fi
+fi
+
 if ! have_cmd lspci; then
   log "Installing pciutils (for GPU detection)..."
   sudo_run apt-get update -y
