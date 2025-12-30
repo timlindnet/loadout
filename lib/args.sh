@@ -4,9 +4,6 @@ set -euo pipefail
 # Globals set by parse_args
 MODE="install"
 TAGS=()
-SNAPSHOT_NAME=""
-SNAPSHOT_TAGS=()
-APPLY_SNAPSHOT_REF=""
 
 # Install selection
 INSTALL_ALL="false"
@@ -18,27 +15,17 @@ declare -A SELECT_ONLY=()
 
 print_help() {
   cat <<'EOF'
-os-ubuntu: folder-driven Ubuntu setup (bash)
+loadout: folder-driven OS setup (bash)
 
 Usage:
-  ./install.sh [--base] [--dev] [--gaming] ...
-  ./install.sh --all
-  ./install.sh --gaming -o
-  ./install.sh --base--spotify
-  ./install.sh --games--rs3
+  curl -fsSL https://loadout.timlind.net | bash -s -- ubuntu --base --dev --gaming
 
 Modes:
   --help                  Show help
   --list-tags             List available tag folders
 
-Snapshots (stored as commits in ./state):
-  --snapshot [name]       Capture state and commit it (also tags snapshot/<name>)
-  --snapshot-tag <label>  Add extra annotated tag(s) label/<label>/<name>
-  --list-snapshots         List snapshot commits (git log in ./state)
-  --apply-snapshot <ref>  Apply snapshot by git ref (commit SHA, tag, etc.)
-
 Notes:
-  - Always-run folders: req/, pre/
+  - Always-run folders (relative to the OS root): req/, pre/
   - Tag folders run only when selected: base/, dev/, gaming/, ...
   - Optional scripts live under <tag>/optional/
     - Install all optional scripts for a tag: --<tag>-optional
@@ -46,7 +33,8 @@ Notes:
       - prefers <tag>/explicit/<script>.sh if present
       - else runs <tag>/optional/<script>.sh
     - Install optional scripts for supplied tags: -o / --optional
-    - Install all tags incl. optional scripts: --all
+    - Install all tag folders: --all-tags
+      - To also run optional scripts: --all-tags -o
   - Explicit scripts live under <tag>/explicit/
     - They are only installed via --<tag>--<script> (never via -o/--optional)
   - For curl/wget piping: bash -s -- <args>
@@ -56,9 +44,6 @@ EOF
 parse_args() {
   MODE="install"
   TAGS=()
-  SNAPSHOT_NAME=""
-  SNAPSHOT_TAGS=()
-  APPLY_SNAPSHOT_REF=""
   INSTALL_ALL="false"
   OPTIONAL_GLOBAL="false"
   OPTIONAL_TAGS=()
@@ -77,42 +62,13 @@ parse_args() {
         MODE="list_tags"
         return 0
         ;;
-      --all)
+      --all-tags|--all)
         MODE="install"
         INSTALL_ALL="true"
-        OPTIONAL_GLOBAL="true"
         ;;
       -o|--optional)
         MODE="install"
         OPTIONAL_GLOBAL="true"
-        ;;
-      --snapshot)
-        MODE="snapshot"
-        # Optional name if next arg exists and isn't another flag
-        if [[ $((i+1)) -lt ${#argv[@]} && "${argv[$((i+1))]}" != --* ]]; then
-          SNAPSHOT_NAME="${argv[$((i+1))]}"
-          i=$((i+1))
-        fi
-        ;;
-      --snapshot-tag)
-        MODE="snapshot"
-        if [[ $((i+1)) -ge ${#argv[@]} ]]; then
-          die "--snapshot-tag requires a value"
-        fi
-        SNAPSHOT_TAGS+=("${argv[$((i+1))]}")
-        i=$((i+1))
-        ;;
-      --list-snapshots)
-        MODE="list_snapshots"
-        return 0
-        ;;
-      --apply-snapshot)
-        MODE="apply_snapshot"
-        if [[ $((i+1)) -ge ${#argv[@]} ]]; then
-          die "--apply-snapshot requires a git ref (commit SHA, tag, etc.)"
-        fi
-        APPLY_SNAPSHOT_REF="${argv[$((i+1))]}"
-        i=$((i+1))
         ;;
       --*)
         # Install-time selectors:
@@ -185,7 +141,7 @@ list_tags() {
     local name
     name="$(basename "$d")"
     case "$name" in
-      .git|lib|req|pre|state) continue ;;
+      .git|_lib|_req|_pre|_*) continue ;;
     esac
     printf "%s\n" "$name"
   done | sort

@@ -2,43 +2,54 @@
 set -euo pipefail
 
 run_install() {
-  local root_dir="$1"
+  local repo_root="$1"
+  local os="$2"
 
-  ensure_ubuntu
+  local os_root="$repo_root/$os"
+  [[ -d "$os_root" ]] || die "Unknown OS folder: $os (missing directory: $os_root)"
+  [[ -f "$os_root/_lib/os.sh" ]] || die "Missing OS library: $os_root/_lib/os.sh"
 
-  export OS_UBUNTU_ROOT="$root_dir"
-  export OS_UBUNTU_STATE_DIR="$root_dir/state"
+  export LOADOUT_REPO_ROOT="$repo_root"
+  export LOADOUT_OS="$os"
+  export LOADOUT_OS_ROOT="$os_root"
 
-  log "Running always-on scripts: req/"
-  run_folder "$root_dir/req" "req" || die "Failed in req/"
+  # Back-compat for older Ubuntu scripts (env var name).
+  if [[ "$os" == "ubuntu" ]]; then
+    export OS_UBUNTU_ROOT="$os_root"
+  fi
 
-  log "Running always-on scripts: pre/"
-  run_folder "$root_dir/pre" "pre" || die "Failed in pre/"
+  log "Running always-on scripts: $os/_req/"
+  run_folder "$repo_root" "$os_root/_req" "$os/_req" "req" || die "Failed in $os/_req/"
+
+  log "Running always-on scripts: $os/_pre/"
+  run_folder "$repo_root" "$os_root/_pre" "$os/_pre" "pre" || die "Failed in $os/_pre/"
 
   local tags=()
   if [[ "${INSTALL_ALL:-false}" == "true" ]]; then
-    mapfile -t tags < <(list_tags "$root_dir")
+    mapfile -t tags < <(list_tags "$os_root")
   else
     tags=("${TAGS[@]:-}")
   fi
 
   local tag
   for tag in "${tags[@]:-}"; do
-    if [[ ! -d "$root_dir/$tag" ]]; then
-      die "Unknown tag folder: $tag (missing directory: $root_dir/$tag)"
+    if [[ ! -d "$os_root/$tag" ]]; then
+      die "Unknown tag folder for OS '$os': $tag (missing directory: $os_root/$tag)"
     fi
 
-    log "Running tag folder: $tag/"
-    run_folder "$root_dir/$tag" "$tag" || die "Failed in tag: $tag/"
+    log "Running tag folder: $os/$tag/"
+    run_folder "$repo_root" "$os_root/$tag" "$os/$tag" "$tag" || die "Failed in tag: $os/$tag/"
 
-    run_selected_for_tag "$root_dir" "$tag"
-    run_optional_for_tag "$root_dir" "$tag"
+    run_selected_for_tag "$repo_root" "$os_root" "$tag"
+    run_optional_for_tag "$repo_root" "$os_root" "$tag"
   done
 }
 
 run_folder() {
-  local folder="$1"
-  local tag="$2"
+  local repo_root="$1"
+  local folder="$2"
+  local label="$3"
+  local tag="$4"
 
   [[ -d "$folder" ]] || return 0
 
@@ -49,21 +60,22 @@ run_folder() {
   done < <(compgen -G "$folder/*.sh" 2>/dev/null | sort || true)
 
   if [[ ${#files[@]} -eq 0 ]]; then
-    log "No scripts found in $tag/ (folder: $folder)"
+    log "No scripts found in $label/ (folder: $folder)"
     return 0
   fi
 
   local f
   for f in "${files[@]}"; do
-    log "Running: $tag/$(basename "$f")"
-    OS_UBUNTU_TAG="$tag" OS_UBUNTU_ROOT="$root_dir" bash "$root_dir/lib/run-script.sh" "$f"
+    log "Running: $label/$(basename "$f")"
+    LOADOUT_TAG="$tag" bash "$repo_root/lib/run-script.sh" "$f"
   done
 }
 
 run_optional_for_tag() {
-  local root_dir="$1"
-  local tag="$2"
-  local opt_dir="$root_dir/$tag/optional"
+  local repo_root="$1"
+  local os_root="$2"
+  local tag="$3"
+  local opt_dir="$os_root/$tag/optional"
 
   [[ -d "$opt_dir" ]] || return 0
 
@@ -82,7 +94,7 @@ run_optional_for_tag() {
 
   if [[ "$run_all" == "true" ]]; then
     log "Running optional scripts for tag: $tag/"
-    run_folder "$opt_dir" "$tag/optional" || die "Failed in optional scripts for tag: $tag/"
+    run_folder "$repo_root" "$opt_dir" "$LOADOUT_OS/$tag/optional" "$tag" || die "Failed in optional scripts for tag: $tag/"
     return 0
   fi
 
@@ -90,12 +102,65 @@ run_optional_for_tag() {
 }
 
 run_selected_for_tag() {
-  local root_dir="$1"
-  local tag="$2"
+  local repo_root="$1"
+  local os_root="$2"
+  local tag="$3"
   local spec="${SELECT_ONLY[$tag]:-}"
   [[ -n "$spec" ]] || return 0
 
   log "Running selected scripts for tag: $tag/ ($spec)"
+
+  resolve_selected_script_path() {
+    # Usage: resolve_selected_script_path <dir> <selector_base>
+    #
+    # Resolves a selector like "ssh-config" to:
+    # - <dir>/ssh-config.sh (exact), OR
+    # - <dir>/NN-ssh-config.sh (two-digit order prefix), OR
+    # - <dir>/NNN-ssh-config.sh (best-effort: numeric prefix)
+    #
+    # If multiple matches exist, returns failure.
+    local dir="$1"
+    local selector="$2"
+
+    local exact="$dir/$selector.sh"
+    if [[ -f "$exact" ]]; then
+      printf "%s" "$exact"
+      return 0
+    fi
+
+    local matches=()
+    local f
+    for f in "$dir"/*.sh; do
+      [[ -f "$f" ]] || continue
+      local name
+      name="$(basename "$f")"
+      local stem="${name%.sh}"
+
+      # Strip common numeric ordering prefixes.
+      # Primary: NN-foo
+      local stripped="$stem"
+      if [[ "$stripped" =~ ^[0-9][0-9]- ]]; then
+        stripped="${stripped:3}"
+      elif [[ "$stripped" =~ ^[0-9]+- ]]; then
+        # Best-effort fallback (e.g. 100-foo)
+        stripped="${stripped#*-}"
+      fi
+
+      if [[ "$stripped" == "$selector" ]]; then
+        matches+=("$f")
+      fi
+    done
+
+    if [[ ${#matches[@]} -eq 1 ]]; then
+      printf "%s" "${matches[0]}"
+      return 0
+    fi
+    if [[ ${#matches[@]} -gt 1 ]]; then
+      die "Selector '$tag--$selector' is ambiguous; matches: ${matches[*]}"
+    fi
+
+    return 1
+  }
 
   local s
   for s in $spec; do
@@ -104,23 +169,30 @@ run_selected_for_tag() {
       base="${base%.sh}"
     fi
 
-    local explicit="$root_dir/$tag/explicit/$base.sh"
-    local optional="$root_dir/$tag/optional/$base.sh"
-
     local file=""
     local label=""
-    if [[ -f "$explicit" ]]; then
-      file="$explicit"
-      label="$tag/explicit"
-    elif [[ -f "$optional" ]]; then
-      file="$optional"
-      label="$tag/optional"
-    else
-      die "Selected script not found for tag '$tag': expected $explicit or $optional"
+    local explicit_dir="$os_root/$tag/explicit"
+    local optional_dir="$os_root/$tag/optional"
+
+    if [[ -d "$explicit_dir" ]]; then
+      file="$(resolve_selected_script_path "$explicit_dir" "$base" || true)"
+      if [[ -n "$file" ]]; then
+        label="$tag/explicit"
+      fi
+    fi
+    if [[ -z "$file" && -d "$optional_dir" ]]; then
+      file="$(resolve_selected_script_path "$optional_dir" "$base" || true)"
+      if [[ -n "$file" ]]; then
+        label="$tag/optional"
+      fi
+    fi
+
+    if [[ -z "$file" ]]; then
+      die "Selected script not found for tag '$tag': $base (looked in: $explicit_dir, $optional_dir)"
     fi
 
     log "Running: $label/$(basename "$file")"
-    OS_UBUNTU_TAG="$tag" OS_UBUNTU_ROOT="$root_dir" bash "$root_dir/lib/run-script.sh" "$file"
+    LOADOUT_TAG="$tag" bash "$repo_root/lib/run-script.sh" "$file"
   done
 }
 

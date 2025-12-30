@@ -1,108 +1,97 @@
-# os-ubuntu (bash-based Ubuntu setup)
+# loadout (bash-based multi-OS setup)
 
-Folder-driven installer for fresh Ubuntu installs, with optional tags (e.g. `--dev`, `--gaming`). Includes an optional **snapshot** system that stores machine state as **commits** in a nested git repo under `state/` (ignored by the main repo).
+Folder-driven installer for fresh OS installs (starting with **Ubuntu**), with optional tags (e.g. `--dev`, `--gaming`).
 
 ## One-liner usage
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/timlindnet/os-ubuntu/main/bootstrap.sh | bash -s -- --base --dev --gaming --optional
+curl -fsSL https://loadout.timlind.net | bash -s -- ubuntu --base --dev --gaming --optional
 ```
 
 ```bash
-wget -qO- https://raw.githubusercontent.com/timlindnet/os-ubuntu/main/bootstrap.sh | bash -s -- --base --dev --gaming --optional
+wget -qO- https://loadout.timlind.net | bash -s -- ubuntu --base --dev --gaming --optional
 ```
 
-Only one of `curl` or `wget` is required; the bootstrap step installs just one if needed.
-
-## Local usage
+If you prefer to bypass `loadout.timlind.net`, you can use GitHub directly:
 
 ```bash
-./install.sh --list-tags
-./install.sh --base --dev --gaming
+curl -fsSL https://raw.githubusercontent.com/timlindnet/loadout/main/bootstrap.sh | bash -s -- ubuntu --base --dev --gaming --optional
+```
+
+```bash
+wget -qO- https://raw.githubusercontent.com/timlindnet/loadout/main/bootstrap.sh | bash -s -- ubuntu --base --dev --gaming --optional
+```
+
+> Note: if you want to pass arguments to a script read from stdin, you need `bash -s -- ...`.
+
+The bootstrap also installs a helper command so you can later run:
+
+```bash
+loadout --dev --gaming
+```
+
+## Tags
+
+Tags correspond to folders under `<os>/` (e.g. `ubuntu/base/`, `ubuntu/dev/`, `ubuntu/gaming/`) and are installed only when selected.
+
+- **Purpose**: keep installs modular. You choose *what kind of machine* you’re setting up by selecting tags.
+- **`base`**: OS-level “foundation” changes meant to improve stability/security (packages, system settings, prerequisites). It should avoid app-specific installs.
+- **Naming**: folders prefixed with `_` (e.g. `ubuntu/_lib/`, `ubuntu/_pre/`, `ubuntu/_req/`) are internal and **cannot** be targeted as tags.
+
+- Install every tag folder:
+
+```bash
+loadout --all-tags
+```
+
+- Install every tag folder + optional scripts:
+
+```bash
+loadout --all-tags -o
 ```
 
 ## Optional scripts
 
-Optional scripts live under `<tag>/optional/`.
+Optional scripts live under `<os>/<tag>/optional/`.
 
 - Install optional scripts for the tags you selected:
 
 ```bash
-./install.sh --base --gaming -o
+loadout --base --gaming -o
 ```
 
 - Install all optional scripts for a specific tag:
 
 ```bash
-./install.sh --base-optional
-./install.sh --gaming-optional
+loadout --base-optional
+loadout --gaming-optional
 ```
 
 - Install only one optional script for a tag (maps to `<tag>/optional/<script>.sh`):
 
 ```bash
-./install.sh --base--spotify
-./install.sh --dev--cursor
+loadout --dev--cursor
 ```
 
-- Explicit scripts live under `<tag>/explicit/` and are installed only when you name them:
+## Explicit scripts
+
+Explicit scripts live under `<os>/<tag>/explicit/` and are installed only when you name them (they are never installed via `-o/--optional`).
 
 ```bash
-./install.sh --games--rs3
+loadout --games--rs3
 ```
-
-- Install everything (all tags + all optional scripts):
-
-```bash
-./install.sh --all
-```
-
-## Snapshots (commits in `state/`)
-
-- Create a snapshot commit (default name is UTC timestamp):
-
-```bash
-./install.sh --snapshot
-```
-
-- Create a snapshot with a friendly name (also creates a tag `snapshot/<name>`):
-
-```bash
-./install.sh --snapshot "after-clean-install"
-```
-
-- Add extra user tags (creates annotated git tags like `label/work-laptop`):
-
-```bash
-./install.sh --snapshot --snapshot-tag work-laptop --snapshot-tag pre-gaming
-```
-
-- List snapshot commits:
-
-```bash
-./install.sh --list-snapshots
-```
-
-- Apply a snapshot (additive install; uses the snapshot commit content):
-
-```bash
-./install.sh --apply-snapshot snapshot/after-clean-install
-./install.sh --apply-snapshot <commit-sha>
-```
-
-> Note: apply is intentionally conservative (installs missing items). It does not remove extra packages by default.
 
 ## Folder execution model
 
 - Always runs:
-  - `req/` (bootstrap tools like a downloader + certs)
-  - `pre/` (e.g. `apt update`, `apt upgrade`)
+  - `<os>/_req/` (bootstrap tools like a downloader + certs)
+  - `<os>/_pre/` (e.g. `apt update`, `apt upgrade`)
 - Runs tag folders only when selected:
-  - `base/`, `dev/`, `gaming/`, etc.
+  - `<os>/base/`, `<os>/dev/`, `<os>/gaming/`, etc.
 
 Scripts within a folder run in lexicographic order (use prefixes like `10-...sh`).
 
 ### Script boilerplate
 
-To keep scripts small, files under `req/`, `pre/`, and tag folders are treated as **snippets** and are executed via `lib/run-script.sh`, which applies `set -euo pipefail`, sources `lib/common.sh`, and runs `ensure_ubuntu` for each script.
+To keep scripts small, files under `<os>/_req/`, `<os>/_pre/`, and OS tag folders are treated as **snippets** and are executed via `lib/run-script.sh`, which applies `set -euo pipefail`, sources `lib/common.sh`, then sources `<os>/_lib/os.sh` and runs `ensure_os` for each script.
 
