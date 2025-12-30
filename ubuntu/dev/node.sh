@@ -11,6 +11,28 @@ install_nvm_cmd=$(
 set -euo pipefail
 export NVM_DIR="$HOME/.nvm"
 mkdir -p "$NVM_DIR"
+
+# Fast path: if nvm exists and Node LTS + default alias are already in place,
+# do nothing (avoid network and avoid reconfiguring).
+if [[ -s "$NVM_DIR/nvm.sh" ]]; then
+  # shellcheck disable=SC1091
+  source "$NVM_DIR/nvm.sh"
+
+  alias_ok="false"
+  if [[ -f "$NVM_DIR/alias/default" ]] && grep -qx "lts/*" "$NVM_DIR/alias/default"; then
+    alias_ok="true"
+  fi
+
+  lts_ok="false"
+  if nvm ls --no-colors --lts 2>/dev/null | grep -qE '\bv[0-9]+'; then
+    lts_ok="true"
+  fi
+
+  if [[ "$alias_ok" == "true" && "$lts_ok" == "true" ]]; then
+    exit 0
+  fi
+fi
+
 if [[ ! -s "$NVM_DIR/nvm.sh" ]]; then
   if command -v curl >/dev/null 2>&1; then
     curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
@@ -23,8 +45,14 @@ if [[ ! -s "$NVM_DIR/nvm.sh" ]]; then
 fi
 # shellcheck disable=SC1091
 source "$NVM_DIR/nvm.sh"
-nvm install --lts
-nvm alias default 'lts/*'
+
+if ! nvm ls --no-colors --lts 2>/dev/null | grep -qE '\bv[0-9]+'; then
+  nvm install --lts
+fi
+
+if [[ ! -f "$NVM_DIR/alias/default" ]] || ! grep -qx "lts/*" "$NVM_DIR/alias/default"; then
+  nvm alias default 'lts/*' >/dev/null
+fi
 EOF
 )
 
