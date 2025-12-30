@@ -156,7 +156,7 @@ done
 [[ -n "$repo_dir" && -d "$repo_dir" ]] || die "Could not locate extracted repo directory."
 
 log "Running install for OS '$os'..."
-bash "$repo_dir/install.sh" "$os" "$@"
+bash "$repo_dir/$os/install.sh" "$@"
 
 install_loadout_helper "$LOADOUT_URL" "$fetcher" "$os"
 

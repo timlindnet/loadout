@@ -12,12 +12,10 @@ run_install() {
   export LOADOUT_REPO_ROOT="$repo_root"
   export LOADOUT_OS="$os"
   export LOADOUT_OS_ROOT="$os_root"
-  export LOADOUT_STATE_DIR="$repo_root/state/$os"
 
-  # Back-compat for existing Ubuntu scripts (env var names).
+  # Back-compat for older Ubuntu scripts (env var name).
   if [[ "$os" == "ubuntu" ]]; then
     export OS_UBUNTU_ROOT="$os_root"
-    export OS_UBUNTU_STATE_DIR="$LOADOUT_STATE_DIR"
   fi
 
   log "Running always-on scripts: $os/req/"

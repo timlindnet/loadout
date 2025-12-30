@@ -4,7 +4,6 @@ set -euo pipefail
 OS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$OS_ROOT/.." && pwd)"
 OS="ubuntu"
-STATE_DIR="$REPO_ROOT/state/$OS"
 
 # Shared helpers.
 # shellcheck source=lib/common.sh
@@ -19,8 +18,6 @@ source "$OS_ROOT/lib/os.sh"
 source "$REPO_ROOT/lib/args.sh"
 # shellcheck source=lib/runner.sh
 source "$REPO_ROOT/lib/runner.sh"
-# shellcheck source=lib/state.sh
-source "$REPO_ROOT/lib/state.sh"
 
 main() {
   parse_args "$@"
@@ -32,24 +29,6 @@ main() {
       ;;
     list_tags)
       list_tags "$OS_ROOT"
-      return 0
-      ;;
-    snapshot)
-      ensure_state_repo "$STATE_DIR"
-      snapshot_create_commit \
-        "$STATE_DIR" \
-        "${SNAPSHOT_NAME:-}" \
-        "${SNAPSHOT_TAGS[@]:-}"
-      return 0
-      ;;
-    list_snapshots)
-      ensure_state_repo "$STATE_DIR" --no-init
-      snapshot_list_commits "$STATE_DIR"
-      return 0
-      ;;
-    apply_snapshot)
-      ensure_state_repo "$STATE_DIR" --no-init
-      snapshot_apply_ref "$STATE_DIR" "$APPLY_SNAPSHOT_REF"
       return 0
       ;;
     install)
