@@ -32,7 +32,10 @@ loadout --dev --gaming
 
 ## Tags
 
-Tags correspond to folders under `<os>/` (e.g. `ubuntu/dev/`, `ubuntu/gaming/`) and are installed only when selected.
+Tags correspond to folders under `<os>/` (e.g. `ubuntu/base/`, `ubuntu/dev/`, `ubuntu/gaming/`) and are installed only when selected.
+
+- **Purpose**: keep installs modular. You choose *what kind of machine* you’re setting up by selecting tags.
+- **`base`**: OS-level “foundation” changes meant to improve stability/security (packages, system settings, prerequisites). It should avoid app-specific installs.
 
 - Install every tag folder:
 
@@ -66,7 +69,6 @@ loadout --gaming-optional
 - Install only one optional script for a tag (maps to `<tag>/optional/<script>.sh`):
 
 ```bash
-loadout --base--spotify
 loadout --dev--cursor
 ```
 
