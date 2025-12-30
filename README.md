@@ -62,10 +62,16 @@ Explicit scripts live under `<os>/<tag>/explicit/` and are installed only when y
 loadout --games--rs3
 ```
 
-- Install everything (all tags + all optional scripts):
+- Install every tag folder:
 
 ```bash
-loadout --all
+loadout --all-tags
+```
+
+- Install every tag folder + optional scripts:
+
+```bash
+loadout --all-tags -o
 ```
 
 ## Folder execution model

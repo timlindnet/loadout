@@ -33,7 +33,8 @@ Notes:
       - prefers <tag>/explicit/<script>.sh if present
       - else runs <tag>/optional/<script>.sh
     - Install optional scripts for supplied tags: -o / --optional
-    - Install all tags incl. optional scripts: --all
+    - Install all tag folders: --all-tags
+      - To also run optional scripts: --all-tags -o
   - Explicit scripts live under <tag>/explicit/
     - They are only installed via --<tag>--<script> (never via -o/--optional)
   - For curl/wget piping: bash -s -- <args>
@@ -61,10 +62,9 @@ parse_args() {
         MODE="list_tags"
         return 0
         ;;
-      --all)
+      --all-tags|--all)
         MODE="install"
         INSTALL_ALL="true"
-        OPTIONAL_GLOBAL="true"
         ;;
       -o|--optional)
         MODE="install"
