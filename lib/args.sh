@@ -19,25 +19,25 @@ loadout: folder-driven OS setup (bash)
 
 Usage:
   loadout --base --dev --gaming
-  wget -qO-  https://loadout.timlind.net | bash -s -- ubuntu --base --dev --gaming
-  curl -fsSL https://loadout.timlind.net | bash -s -- ubuntu --base --dev --gaming
+  wget -qO-  https://loadout.timlind.net | bash -s -- --base --dev --gaming
+  curl -fsSL https://loadout.timlind.net | bash -s -- --base --dev --gaming
 
 Modes:
   --help                  Show help
   --list-tags             List available tag folders
 
 Notes:
-  - Always-run folders (relative to the OS root): req/, pre/
-  - Tag folders run only when selected: base/, dev/, gaming/, ...
-  - Optional scripts live under <tag>/optional/
+  - Always-run folders: _req/, _pre/
+  - Tag folders run only when selected: _tags/base/, _tags/dev/, _tags/gaming/, ...
+  - Optional scripts live under _tags/<tag>/optional/
     - Install all optional scripts for a tag: --<tag>-optional
     - Install one optional/explicit script: --<tag>--<script>
-      - prefers <tag>/explicit/<script>.sh if present
-      - else runs <tag>/optional/<script>.sh
+      - prefers _tags/<tag>/explicit/<script>.sh if present
+      - else runs _tags/<tag>/optional/<script>.sh
     - Install optional scripts for supplied tags: -o / --optional
     - Install all tag folders: --all-tags
       - To also run optional scripts: --all-tags -o
-  - Explicit scripts live under <tag>/explicit/
+  - Explicit scripts live under _tags/<tag>/explicit/
     - They are only installed via --<tag>--<script> (never via -o/--optional)
   - For stdin piping (wget/curl): bash -s -- <args>
 EOF
@@ -95,7 +95,7 @@ parse_args() {
         fi
         ;;
       *)
-        die "Unknown argument: $a"
+        die "Unknown argument: $a (note: OS argument is no longer used; pass tags as --dev/--gaming etc)"
         ;;
     esac
     i=$((i+1))
