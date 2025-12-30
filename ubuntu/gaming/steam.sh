@@ -5,12 +5,12 @@ log "Installing Steam (apt)..."
 # enabling multiverse.
 if ! have_cmd add-apt-repository; then
   # add-apt-repository is provided by software-properties-common.
-  os_pkg_install software-properties-common
+  sudo_run apt-get install -y software-properties-common
 fi
 
 sudo_run add-apt-repository -y multiverse
-os_pkg_update
-os_pkg_install steam
+sudo_run apt-get update -y
+sudo_run apt-get install -y steam
 
 log "Done (Steam)."
 

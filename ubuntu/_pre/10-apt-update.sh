@@ -1,3 +1,5 @@
+apt_recover_dpkg
+
 log "Updating apt package lists..."
-os_pkg_update
+sudo_run apt-get update -y
 

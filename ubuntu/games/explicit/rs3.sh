@@ -2,7 +2,8 @@ log "Installing Bolt (Flatpak)..."
 
 if ! have_cmd flatpak; then
   log "Installing requirement: flatpak"
-  os_pkg_install flatpak
+  sudo_run apt-get update -y
+  sudo_run apt-get install -y flatpak
 fi
 
 # Ensure Flathub exists (Bolt is published there).
