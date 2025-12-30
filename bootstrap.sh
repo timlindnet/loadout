@@ -160,7 +160,7 @@ EOF
     log "NOTE: '$helper_dir' is not on PATH in this shell."
     log "      Start a new shell, or run: export PATH=\"$helper_dir:\$PATH\""
   fi
-  log "Run: loadout --dev --gaming"
+  log "Run: loadout --help"
 }
 
 os="${1:-}"
