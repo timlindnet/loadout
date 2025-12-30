@@ -30,6 +30,22 @@ The bootstrap also installs a helper command so you can later run:
 loadout --dev --gaming
 ```
 
+## Tags
+
+Tags correspond to folders under `<os>/` (e.g. `ubuntu/dev/`, `ubuntu/gaming/`) and are installed only when selected.
+
+- Install every tag folder:
+
+```bash
+loadout --all-tags
+```
+
+- Install every tag folder + optional scripts:
+
+```bash
+loadout --all-tags -o
+```
+
 ## Optional scripts
 
 Optional scripts live under `<os>/<tag>/optional/`.
@@ -60,18 +76,6 @@ Explicit scripts live under `<os>/<tag>/explicit/` and are installed only when y
 
 ```bash
 loadout --games--rs3
-```
-
-- Install every tag folder:
-
-```bash
-loadout --all-tags
-```
-
-- Install every tag folder + optional scripts:
-
-```bash
-loadout --all-tags -o
 ```
 
 ## Folder execution model
