@@ -16,6 +16,7 @@ log "Installing Cursor (.deb, ${arch})..."
 
 page="$(fetch_url "https://cursor.com/download")"
 url="$(printf "%s" "$page" | grep -oE "https://api2\\.cursor\\.sh/updates/download/golden/${platform}/cursor/[^\"[:space:]]+" | head -n1 || true)"
+url="${url%\\}"
 
 if [[ -z "$url" ]]; then
   die "Could not find Cursor download URL on cursor.com/download for platform: $platform"

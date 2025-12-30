@@ -1,11 +1,5 @@
 log "Installing Steam (apt)..."
 
-# Avoid any interactive apt/debconf prompts.
-export DEBIAN_FRONTEND=noninteractive
-
-# Ensure dpkg isn't left half-configured (blocks apt operations).
-apt_recover_dpkg
-
 # Enable multiverse (Steam lives here on Ubuntu).
 # Pre-scripts already run `apt-get update`, so we only update again after
 # enabling multiverse.

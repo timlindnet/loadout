@@ -1,10 +1,5 @@
 log "Installing Bolt (Flatpak)..."
 
-# Avoid any interactive apt/debconf prompts.
-export DEBIAN_FRONTEND=noninteractive
-
-apt_recover_dpkg
-
 if ! have_cmd flatpak; then
   log "Installing requirement: flatpak"
   sudo_run apt-get update -y

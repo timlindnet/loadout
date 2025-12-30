@@ -21,53 +21,9 @@ os_recover_pkg_system() {
   #
   # Running this proactively is safe when dpkg is healthy (it's effectively a no-op).
   log "Ensuring dpkg is configured (dpkg --configure -a)..."
-  # dpkg/apt can be temporarily busy (e.g. unattended upgrades). Wait a bit for locks,
-  # but never delete lock files.
-  local timeout_s="${LOADOUT_DPKG_LOCK_TIMEOUT_S:-300}"
-  local sleep_s=3
-  local start_s=$SECONDS
-
-  while true; do
-    local out rc pid cmd
-    out=""
-    rc=0
-
-    if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
-      log "+ dpkg --configure -a"
-      out="$(dpkg --configure -a 2>&1)" || rc=$?
-    else
-      log "+ sudo dpkg --configure -a"
-      out="$(sudo dpkg --configure -a 2>&1)" || rc=$?
-    fi
-
-    if [[ "$rc" -eq 0 ]]; then
-      return 0
-    fi
-
-    pid=""
-    if [[ "$out" =~ pid[[:space:]]+([0-9]+) ]]; then
-      pid="${BASH_REMATCH[1]}"
-    fi
-
-    # Common dpkg/apt lock messages.
-    if [[ "$out" == *"lock-frontend"* ]] || [[ "$out" == *"dpkg frontend lock"* ]] || [[ "$out" == *"Unable to acquire the dpkg frontend lock"* ]] || [[ "$out" == *"Could not get lock /var/lib/dpkg/lock"* ]]; then
-      if (( SECONDS - start_s >= timeout_s )); then
-        warn "$out"
-        die "Timed out waiting for dpkg/apt lock (${timeout_s}s). Try again later, or run: sudo dpkg --configure -a && sudo apt-get -f install"
-      fi
-
-      cmd=""
-      if [[ -n "$pid" ]]; then
-        cmd="$(ps -p "$pid" -o comm= 2>/dev/null || true)"
-      fi
-      warn "dpkg/apt is busy${pid:+ (pid $pid${cmd:+: $cmd})}; waiting ${sleep_s}s and retrying..."
-      sleep "$sleep_s"
-      continue
-    fi
-
-    warn "$out"
+  if ! sudo_run dpkg --configure -a; then
     die "dpkg is in a broken state. Try: sudo dpkg --configure -a && sudo apt-get -f install"
-  done
+  fi
 }
 
 os_pkg_update() {
@@ -80,7 +36,6 @@ os_pkg_upgrade() {
   # - prefer default action where possible
   # - keep existing config if a prompt would occur
   export DEBIAN_FRONTEND=noninteractive
-
   os_recover_pkg_system
   sudo_run apt-get upgrade -y \
     -o Dpkg::Options::=--force-confdef \
