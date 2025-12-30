@@ -26,3 +26,8 @@ This repo is intentionally **simple bash**. Prefer the simplest stable mechanism
   - `--<tag>-optional` installs all optional scripts for that tag
   - `--<tag>--<script>` installs only `_tags/<tag>/optional/<script>.sh`
 
+- Explicit scripts: `_tags/<tag>/explicit/`
+  - They are only installed when explicitly selected via `--<tag>--<script>`
+  - Selection prefers `explicit/` over `optional/` when both exist
+  - Explicit scripts are never installed via `-o/--optional`
+
