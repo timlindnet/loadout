@@ -1,8 +1,9 @@
-log "Installing AWS CLI v2 (official installer)..."
+log "Installing AWS CLI (official installer)..."
 
 # Docs: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
-# We use the official bundled installer so we get the latest AWS CLI v2 release
-# (not the distro package, and not the Python/pip-based CLI v1).
+# We use the official bundled installer so we get the latest AWS CLI release
+# published by AWS at their installer URL (not the distro package, and not
+# the Python/pip-based CLI v1).
 
 arch="$(uname -m)"
 case "$arch" in
@@ -20,7 +21,7 @@ esac
 sudo_run apt-get install -y unzip
 
 tmp_dir="$(mktemp -d)"
-zip_path="$tmp_dir/awscliv2.zip"
+zip_path="$tmp_dir/awscli.zip"
 
 cleanup() {
   rm -rf "$tmp_dir"
@@ -38,5 +39,5 @@ sudo_run "$tmp_dir/aws/install" --update
 
 run aws --version
 
-log "Done (AWS CLI v2)."
+log "Done (AWS CLI)."
 
