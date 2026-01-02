@@ -1,57 +1,42 @@
-target_user="${SUDO_USER:-$USER}"
-target_home="$(getent passwd "$target_user" | cut -d: -f6)"
-if [[ -z "$target_home" ]]; then
-  die "Cannot resolve home directory for user: $target_user"
-fi
+log "Installing AWS CLI v2 (official installer)..."
 
-log "Installing AWS CLI (pip3 --user) for user: $target_user"
+# Docs: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
+# We use the official bundled installer so we get the latest AWS CLI v2 release
+# (not the distro package, and not the Python/pip-based CLI v1).
 
-# AWS docs for CLI v1 on Linux recommend pip3 with --user, which installs to:
-#   ~/.local/bin
-sudo_run apt-get install -y python3-pip
+arch="$(uname -m)"
+case "$arch" in
+  x86_64)
+    url="https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
+    ;;
+  aarch64|arm64)
+    url="https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip"
+    ;;
+  *)
+    die "Unsupported architecture for AWS CLI installer: $arch"
+    ;;
+esac
 
-install_cmd=$(
-  cat <<'EOF'
-set -euo pipefail
-pip3 install awscli --upgrade --user
-EOF
-)
+sudo_run apt-get install -y unzip
 
-profile_cmd=$(
-  cat <<'EOF'
-set -euo pipefail
+tmp_dir="$(mktemp -d)"
+zip_path="$tmp_dir/awscliv2.zip"
 
-profile="$HOME/.profile"
-marker="# Added by loadout (aws-cli)"
+cleanup() {
+  rm -rf "$tmp_dir"
+}
+trap cleanup EXIT
 
-touch "$profile"
+log "Downloading: $url"
+fetch_url "$url" >"$zip_path"
 
-if ! grep -qF "$marker" "$profile"; then
-  cat >>"$profile" <<'BLOCK'
+log "Unpacking installer..."
+run unzip -q "$zip_path" -d "$tmp_dir"
 
-# Added by loadout (aws-cli)
-if [ -d "$HOME/.local/bin" ] ; then
-  PATH="$HOME/.local/bin:$PATH"
-fi
-BLOCK
-fi
-EOF
-)
+log "Running installer..."
+sudo_run "$tmp_dir/aws/install" --update
 
-if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
-  run sudo -u "$target_user" env HOME="$target_home" bash -lc "$install_cmd"
-  run sudo -u "$target_user" env HOME="$target_home" bash -lc "$profile_cmd"
-else
-  run env HOME="$target_home" bash -lc "$install_cmd"
-  run env HOME="$target_home" bash -lc "$profile_cmd"
-fi
+run aws --version
 
-# Verify (use ~/.local/bin regardless of current session profile state).
-if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
-  run sudo -u "$target_user" env HOME="$target_home" bash -lc 'export PATH="$HOME/.local/bin:$PATH"; aws --version'
-else
-  run env HOME="$target_home" bash -lc 'export PATH="$HOME/.local/bin:$PATH"; aws --version'
-fi
-
-log "Done (AWS CLI)."
+log "Done (AWS CLI v2)."
 
