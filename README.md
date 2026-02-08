@@ -18,8 +18,6 @@ With tags:
 wget -qO- https://loadout.timlind.net | bash -s -- --base --dev --gaming --optional
 ```
 
-If you already have `curl`:
-
 ```bash
 curl -fsSL https://loadout.timlind.net | bash -s -- --base --dev --gaming --optional
 ```
