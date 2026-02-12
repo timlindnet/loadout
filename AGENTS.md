@@ -27,6 +27,22 @@ When running a folder (e.g. `_pre/` or `_tags/dev/`), scripts are **merged acros
 - More specific layers **override** earlier layers by basename.
 - Execution order is **lexicographic by basename** (use numeric prefixes like `10-...sh`).
 
+## Layer placement policy (agent decision rule)
+
+When implementing a request to add/update software (for example, “add wine on Ubuntu”), choose layers deliberately:
+
+1. Start at the **lowest compatible layer** in the active chain (usually `debian/`) and ask: can this implementation satisfy the request with equal-or-better compliance/stability/performance for all downstream distros?
+2. If yes, add a baseline implementation there.
+3. If a more specific layer (for example `debian/ubuntu/`) can provide a **meaningful** benefit (better compatibility, package availability, or performance), add an override there too.
+4. Use the **same script basename** in both layers so the higher layer overrides cleanly on matching OSes.
+
+Practical rule:
+
+- If both Debian and Ubuntu layers exist, and Ubuntu gets a materially better implementation, add **both**:
+  - Debian baseline (fallback/shared behavior)
+  - Ubuntu override (preferred on Ubuntu via basename override)
+- Only skip the lower layer when the change is truly unsupported or unsafe outside the higher layer.
+
 ## Folder layout + selectors
 
 - **Always-run folders**: `_req/`, `_pre/`

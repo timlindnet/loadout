@@ -16,6 +16,13 @@ Keep this repo **KISS**: minimal, stable, low-maintenance bash automation (start
 - Avoid version-specific branching where possible; target Ubuntu 24+.
 - Minimize new dependencies and avoid “install both curl and wget”.
 
+## Layer selection rules for agent edits
+- When adding/updating software, evaluate layers from lowest to highest specificity (`debian/` -> `debian/ubuntu/` -> version layer).
+- Default to adding a baseline in the **lowest compatible layer** when compliance/stability/performance is equal or better.
+- If a higher layer has a meaningful compatibility or performance advantage, add an override in that layer too.
+- If both Debian and Ubuntu layers exist and Ubuntu is better, add **both** implementations using the **same basename** so Ubuntu overrides Debian automatically.
+- Only omit the lower-layer implementation when it is unsupported or unsafe outside the higher layer.
+
 ## Optional scripts
 - Optional scripts live under `_tags/<tag>/optional/` and are installed only via:
   - `-o/--optional` (for selected tags), `--<tag>-optional`, or `--<tag>--<script>`.
