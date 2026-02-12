@@ -35,6 +35,7 @@ Notes:
   - Include optional add-ons for selected tags: loadout --dev -o
   - Install all add-ons for one tag: loadout --dev-optional
   - Run a single add-on by name: loadout --dev--cursor
+    - Example (gaming): loadout --gaming--teamspeak-client
     - Names for add-ons are shown under optional/explicit in --list-tags
 EOF
 }
