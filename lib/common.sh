@@ -50,3 +50,41 @@ sudo_run() {
   fi
 }
 
+loadout_target_user() {
+  # User we should install user-scoped tools for.
+  printf "%s" "${SUDO_USER:-$USER}"
+}
+
+loadout_target_home() {
+  # Usage: loadout_target_home [user]
+  local user="${1:-$(loadout_target_user)}"
+  local home
+  home="$(getent passwd "$user" | cut -d: -f6)"
+  [[ -n "$home" ]] || die "Cannot resolve home directory for user: $user"
+  printf "%s" "$home"
+}
+
+as_target_user() {
+  # Usage: as_target_user <user> <home> <cmd> [args...]
+  local user="$1"
+  local home="$2"
+  shift 2
+  if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
+    sudo -u "$user" env HOME="$home" "$@"
+  else
+    env HOME="$home" "$@"
+  fi
+}
+
+run_as_target_user() {
+  # Usage: run_as_target_user <user> <home> <cmd> [args...]
+  local user="$1"
+  local home="$2"
+  shift 2
+  if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
+    run sudo -u "$user" env HOME="$home" "$@"
+  else
+    run env HOME="$home" "$@"
+  fi
+}
+
