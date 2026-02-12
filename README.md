@@ -74,6 +74,7 @@ Examples:
 ```bash
 loadout --dev--cursor
 loadout --dev--aws-cli
+loadout --gaming--teamspeak-client
 ```
 
 ## Folder execution model
